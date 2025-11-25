@@ -1,69 +1,75 @@
 from locators.order_locators import LocatorsOrder
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium import webdriver
-import pytest
+from .base_page import BasePage
 import allure
+import pytest
 
-class OrderPage:
+class OrderPage(BasePage):
 
-    def __init__(self, driver:webdriver.Firefox):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 5)
+    def __init__(self, driver):
+        super().__init__(driver)
 
+    @allure.step("Кликнуть на кнопку 'Заказать' вверху страницы")
     def click_order_top(self):
-        self.driver.find_element(*LocatorsOrder.order_top).click()
+        self.click_with_scroll(LocatorsOrder.order_top)
     
+    @allure.step("Кликнуть на кнопку 'Заказать' внизу страницы")
     def click_order_down(self):
-        elem = self.wait.until(expected_conditions.visibility_of_element_located(LocatorsOrder.order_down))
-        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elem)
-        self.wait.until(expected_conditions.element_to_be_clickable(LocatorsOrder.order_down))
-        self.driver.execute_script("arguments[0].click();", elem)
+        self.click_with_scroll(LocatorsOrder.order_down)
    
+    @allure.step("Заполнить первую форму заказа")
     def first_form(self, name, surname, address, subway, phone):
-        self.wait.until(expected_conditions.visibility_of_element_located(LocatorsOrder.name)).send_keys(name)
-        self.driver.find_element(*LocatorsOrder.surname).send_keys(surname)
-        self.driver.find_element(*LocatorsOrder.address).send_keys(address)
-        self.driver.find_element(*LocatorsOrder.subway).click()
-        self.driver.find_element(*LocatorsOrder.subway).send_keys(subway)
-        self.wait.until(expected_conditions.element_to_be_clickable(LocatorsOrder.subway_dropdown_option)).click()
-        self.driver.find_element(*LocatorsOrder.phone).send_keys(phone)
-        self.driver.find_element(*LocatorsOrder.further).click()
+        self.enter_text(LocatorsOrder.name, name)
+        self.enter_text(LocatorsOrder.surname, surname)
+        self.enter_text(LocatorsOrder.address, address)
+        self.select_subway_station(subway)
+        self.enter_text(LocatorsOrder.phone, phone)
+        self.click_with_scroll(LocatorsOrder.further)
 
+    @allure.step("Выбрать станцию метро")
+    def select_subway_station(self, station):
+        subway_element = self.wait_for_element_visible(LocatorsOrder.subway)
+        subway_element.click()
+        subway_element.send_keys(station)
+        self.wait_for_element_clickable(LocatorsOrder.subway_dropdown_option).click()
+    
+    @allure.step("Выбрать период аренды")
     def select_rental_period(self, period):
         period_locators = {
             'сутки': LocatorsOrder.day,
             'трое суток': LocatorsOrder.days_3
         }
         locator = period_locators[period]
-        self.driver.find_element(*LocatorsOrder.period).click()
-        self.driver.find_element(*locator).click()
+        self.wait_for_element_visible(LocatorsOrder.period).click()
+        self.wait_for_element_visible(locator).click()
 
+    @allure.step("Выбрать цвет самоката")
     def select_scooter_color(self, color):
         color_locators = {
             'black': LocatorsOrder.color_black,
             'grey': LocatorsOrder.color_grey
         }
         locator = color_locators[color]
-        self.driver.find_element(*locator).click()
+        self.wait_for_element_visible(locator).click()
     
+    @allure.step("Заполнить вторую форму заказа")
     def second_form(self, date, period, color, comment):
-        self.wait.until(expected_conditions.visibility_of_element_located(LocatorsOrder.when)).send_keys(date)
-        self.driver.find_element(*LocatorsOrder.order_button).click()
+        self.enter_text(LocatorsOrder.when, date)
+        self.wait_for_element_visible(LocatorsOrder.order_button).click()
         self.select_rental_period(period)
         self.select_scooter_color(color)
-        self.driver.find_element(*LocatorsOrder.comment).send_keys(comment)
-        self.driver.find_element(*LocatorsOrder.order_button).click()
-        self.wait.until(expected_conditions.visibility_of_element_located(LocatorsOrder.button_yes)).click()
+        self.enter_text(LocatorsOrder.comment, comment)
+        self.wait_for_element_visible(LocatorsOrder.order_button).click()
+        self.wait_for_element_visible(LocatorsOrder.button_yes).click()
 
+    @allure.step("Получить сообщение об успешном заказе")
     def get_success_message(self):
-        return self.wait.until(expected_conditions.visibility_of_element_located(LocatorsOrder.order_success)).text
+        return self.get_element_text(LocatorsOrder.order_success)
     
+    @allure.step("Кликнуть на логотип Самоката")
     def click_scooter_logo(self):
-        self.driver.find_element(*LocatorsOrder.scooter_logo).click()
+        self.click_with_scroll(LocatorsOrder.scooter_logo)
     
+    @allure.step("Кликнуть на логотип Яндекса")
     def click_ya_logo(self):
-        self.driver.find_element(*LocatorsOrder.ya_logo).click()
-        self.wait.until(expected_conditions.number_of_windows_to_be(2))
-        self.driver.switch_to.window(self.driver.window_handles[-1])
-        self.wait.until(expected_conditions.url_contains('dzen.ru'))
+        self.click_with_scroll(LocatorsOrder.ya_logo)
+        self.switch_to_new_window()
